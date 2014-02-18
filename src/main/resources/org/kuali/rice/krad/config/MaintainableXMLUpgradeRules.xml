@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2005-2013 The Kuali Foundation
+    Copyright 2005-2014 The Kuali Foundation
 
     Licensed under the Educational Community License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,13 +16,43 @@
     limitations under the License.
 
 -->
+<!--
+    ====
+    CU Customization:
+    Added IU's just-in-time maintainable XML conversion feature,
+    available at https://github.com/ewestfal/rice-xml-converter
+    
+    Also added extra conversion rules, and updated the comments
+    below to mention the new rules as well as some other
+    conversion feature notes.
+    
+    Another note is that our CU updates will cause the XML
+    conversion process to also consider nested elements of
+    interest plus elements that rely on "class" attributes
+    for type identification.
+    ====
+ -->
 <rules>
 
   <!-- Rules for any changes to the fully qualified class name
-        Uses regex to match.
+       Uses regex to match.
+       
+       ====
+       CU Notes:
+       
+       Although the comment above implies that regex-based matching is performed,
+       in reality both IU's and Rice's MaintainableXMLConversionServiceImpl
+       implementations appear to be using exact matching instead. For the moment,
+       the CU changes to this class are sticking with exact matching as well.
+       
+       Furthermore, the patterns below have been consolidated into the
+       "maint_doc_changed_class_properties" section under the "*" entry,
+       to keep the CU version of the processing simpler due to our "class"
+       attribute value replacement feature.
+       ====
   -->
   <rule name="maint_doc_classname_changes" alsoRenameClass="true">
-    <pattern>
+    <!--<pattern>
       <match>org.kuali.rice.kns.bo.CampusImpl</match>
       <replacement>org.kuali.rice.location.impl.campus.CampusBo</replacement>
     </pattern>
@@ -61,12 +91,61 @@
     <pattern>
       <match>org.kuali.rice.kim.bo.impl.PersonImpl</match>
       <replacement>org.kuali.rice.kim.impl.identity.PersonImpl</replacement>
-    </pattern>
+    </pattern>-->
   </rule>
 
   <!-- Rules specifying any change in class properties.
-        Empty replacement tag will remove that property from the class.
-        Uses XPath to match names, can use wildcards
+       Empty replacement tag will remove that property from the class.
+       Uses XPath to match names, can use wildcards
+       
+       ====
+       CU Notes:
+       
+       Despite the XPath matching implied above, both IU's and Rice's
+       MaintainableXMLConversionServiceImpl implementations appear
+       to be using exact matching instead, and rely on an entry with
+       a class of "*" to perform global replacements on its own pass
+       (the non-"*" map, if given, is used on a separate first pass).
+       With our CU changes, we use one pass to do the matching and
+       replacing, with non-"*"-map changes trumping "*"-map changes.
+       
+       Our CU version does not use the "maint_doc_classname_changes"
+       map, and instead places its entries under the "*"-map changes
+       in the rules below.
+       
+       In addition, we've added the following features to allow
+       for less hard-coded conversion of types like TypedArrayList:
+       
+       [1] If a maintainable XML "class" attribute has a value equal to
+       one of the matches below, then its value will be updated or the
+       whole element will be removed accordingly. (It is possible for
+       both an element's name and its "class" attribute to be updated
+       during conversion.) If an element does have a "class" attribute
+       and its converted value results in a non-"*" map match below,
+       then that non-"*" map will be used instead of any non-"*" map
+       match for the element's converted name.
+       
+       [2] Adding "(ATTR)" to the end of a key will indicate that it
+       should match on an attribute name instead of a sub-element name
+       or "class" attribute value. (Note, however, that such keys will
+       not perform matching on the attribute's value.) This is handy
+       for removing an element's "class" attribute even when
+       the element has non-"*"-map changes.
+       
+       [3] For element name or "class" attribute value matching,
+       setting the replacement value to "(MOVE_NODES_TO_PARENT)"
+       will remove the element and its attributes during the conversion,
+       but will still preserve its sub-elements and move them
+       to the parent element. Handy for converting TypedArrayLists
+       with ListProxyDefaultImpl sub-elements.
+       
+       [4] For element names referring to map entries, setting the
+       replacement value to "(CONVERT_TO_MAP_ENTRIES)" will wrap
+       that element and its next sibling inside of an "entry"
+       element. Needed for implementing the string-map-conversion
+       behavior from IU's and Rice's conversion code. (NOTE: Nested
+       map handling of this type is not supported at the moment.)
+       ====
   -->
   <rule name="maint_doc_changed_class_properties">
     <pattern>
@@ -279,6 +358,116 @@
         <replacement>id</replacement>
       </pattern>
     </pattern>
+
+    <!-- ==== CU Customization ==== -->
+
+    <pattern>
+      <class>org.kuali.rice.kns.util.TypedArrayList</class>
+      <pattern>
+        <match>class(ATTR)</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>unserializable-parents</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>org.kuali.rice.kns.util.TypedArrayList</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>org.apache.ojb.broker.core.proxy.ListProxyDefaultImpl</match>
+        <replacement>(MOVE_NODES_TO_PARENT)</replacement>
+      </pattern>
+    </pattern>
+    <pattern>
+      <class>org.apache.ojb.broker.core.proxy.ListProxyDefaultImpl</class>
+      <pattern>
+        <match>default</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>int</match>
+        <replacement></replacement>
+      </pattern>
+    </pattern>
+    <!-- Special entry for converting string maps. -->
+    <pattern>
+      <class>map</class>
+      <pattern>
+        <match>string</match>
+        <replacement>(CONVERT_TO_MAP_ENTRIES)</replacement>
+      </pattern>
+    </pattern>
+    <!-- Added match for performing the same ManageableArrayList handling as in UCD's version of the code. -->
+    <pattern>
+      <class>org.apache.ojb.broker.util.collections.ManageableArrayList</class>
+      <pattern>
+        <match>class(ATTR)</match>
+        <replacement></replacement>
+      </pattern>
+    </pattern>
+    <!-- Added global matches. -->
+    <pattern>
+      <class>*</class>
+      <pattern>
+        <match>serialization(ATTR)</match>
+        <replacement></replacement>
+      </pattern>
+      <!-- Moved the following entries over from the "maint_doc_classname_changes" section. -->
+      <pattern>
+        <match>org.kuali.rice.kns.bo.CampusImpl</match>
+        <replacement>org.kuali.rice.location.impl.campus.CampusBo</replacement>
+      </pattern>
+      <pattern>
+        <match>org.kuali.rice.kns.bo.Parameter</match>
+        <replacement>org.kuali.rice.coreservice.impl.parameter.ParameterBo</replacement>
+      </pattern>
+      <pattern>
+        <match>org.kuali.rice.kew.rule.RuleDelegation</match>
+        <replacement>org.kuali.rice.kew.rule.RuleDelegationBo</replacement>
+      </pattern>
+	  <pattern>
+        <match>org.kuali.rice.kns.bo.CampusTypeImpl</match>
+        <replacement>org.kuali.rice.location.impl.campus.CampusTypeBo</replacement>
+      </pattern>
+	  <pattern>
+        <match>org.kuali.rice.kns.bo.Namespace</match>
+        <replacement>org.kuali.rice.coreservice.impl.namespace.NamespaceBo</replacement>
+      </pattern>
+	  <pattern>
+        <match>org.kuali.rice.kns.bo.ParameterDetailType</match>
+        <replacement>org.kuali.rice.coreservice.impl.component.ComponentBo</replacement>
+      </pattern>
+	  <pattern>
+        <match>org.kuali.rice.kns.bo.CountryImpl</match>
+        <replacement>org.kuali.rice.location.impl.country.CountryBo</replacement>
+      </pattern>
+	  <pattern>
+        <match>org.kuali.rice.kim.bo.impl.GenericPermission</match>
+        <replacement>org.kuali.rice.kim.impl.permission.GenericPermissionBo</replacement>
+      </pattern>
+      <pattern>
+        <match>org.kuali.rice.kns.bo.KualiCodeBase</match>
+        <replacement>org.kuali.rice.krad.bo.KualiCodeBase</replacement>
+      </pattern>
+      <pattern>
+        <match>org.kuali.rice.kim.bo.impl.PersonImpl</match>
+        <replacement>org.kuali.rice.kim.impl.identity.PersonImpl</replacement>
+      </pattern>
+      <!-- Copied the following entries from Rice's version of this file. -->
+      <pattern>
+        <match>boNotes</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>autoIncrementSet</match>
+        <replacement></replacement>
+      </pattern>
+    </pattern>
+
+    <!-- ==== End CU Customization ==== -->
+
   </rule>
   
     <!-- Rules for any changes Dates from the format YYYY-MM-DD to other format.  The
