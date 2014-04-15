@@ -35,6 +35,7 @@ import javax.xml.xpath.XPathFactory;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kuali.rice.core.api.config.property.ConfigContext;
+import org.kuali.rice.core.api.util.RiceUtilities;
 import org.kuali.rice.krad.service.MaintainableXMLConversionService;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.ClassPathResource;
@@ -287,7 +288,12 @@ public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConv
 				resource = new FileSystemResource(this.getConversionRuleFile());
 			}
 			if(!resource.exists()) {
-				doc = db.parse(this.getClass().getResourceAsStream(this.getConversionRuleFile()));
+				// ==== CU Customization: If a classpath resource, make another attempt to load it via Spring if it couldn't be found above. ====
+				if (StringUtils.startsWith(this.getConversionRuleFile(), "classpath")) {
+					doc = db.parse(RiceUtilities.getResourceAsStream(this.getConversionRuleFile()));
+				} else {
+					doc = db.parse(this.getClass().getResourceAsStream(this.getConversionRuleFile()));
+				}
 			} else {
 				doc = db.parse(resource.getInputStream());
 			}
@@ -332,8 +338,10 @@ public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConv
                 dateRuleMap.put(matchText, replaceText);
             }
 		} catch (Exception e) {
-			System.out.println("Error parsing rule xml file. Please check file. : " + e.getMessage());
-			e.printStackTrace();
+			// ==== CU Customization: Added better logging. ====
+			LOG.error("Error parsing rule xml file. Please check file.", e);
+			//System.out.println("Error parsing rule xml file. Please check file. : " + e.getMessage());
+			//e.printStackTrace();
 		}
 	}
 
