@@ -362,6 +362,39 @@
     <!-- ==== CU Customization ==== -->
 
     <pattern>
+      <!-- Added PersonImpl handling similar to that from our KFS implementation. -->
+      <class>org.kuali.rice.kim.impl.identity.PersonImpl</class>
+      <pattern>
+        <match>addressLine1</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressLine2</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressLine3</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressCityName</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressStateCode</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressPostalCode</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>addressCountryCode</match>
+        <replacement></replacement>
+      </pattern>
+    </pattern>
+    <!-- Entries for converting TypedArrayLists and OJB ListProxyDefaultImpls -->
+    <pattern>
       <class>org.kuali.rice.kns.util.TypedArrayList</class>
       <pattern>
         <match>class(ATTR)</match>
@@ -388,6 +421,55 @@
       </pattern>
       <pattern>
         <match>int</match>
+        <replacement></replacement>
+      </pattern>
+    </pattern>
+    <!-- Entries for converting OJB removal-aware collections. -->
+    <pattern>
+      <class>org.apache.ojb.broker.util.collections.RemovalAwareCollection</class>
+      <pattern>
+        <match>class(ATTR)</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>unserializable-parents</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>org.apache.ojb.broker.util.collections.RemovalAwareCollection</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>vector</match>
+        <replacement>(MOVE_NODES_TO_PARENT)</replacement>
+      </pattern>
+    </pattern>
+    <pattern>
+      <class>vector</class>
+      <pattern>
+        <match>default</match>
+        <replacement>(MOVE_NODES_TO_PARENT)</replacement>
+      </pattern>
+    </pattern>
+    <pattern>
+      <class>default</class>
+      <pattern>
+        <match>capacityIncrement</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>elementCount</match>
+        <replacement></replacement>
+      </pattern>
+      <pattern>
+        <match>elementData</match>
+        <replacement>(MOVE_NODES_TO_PARENT)</replacement>
+      </pattern>
+    </pattern>
+    <pattern>
+      <class>elementData</class>
+      <pattern>
+        <match>null</match>
         <replacement></replacement>
       </pattern>
     </pattern>

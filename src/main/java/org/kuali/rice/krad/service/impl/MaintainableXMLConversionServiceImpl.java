@@ -37,6 +37,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kuali.rice.core.api.config.property.ConfigContext;
 import org.kuali.rice.core.api.util.RiceUtilities;
 import org.kuali.rice.krad.service.MaintainableXMLConversionService;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
@@ -57,7 +58,7 @@ import org.xml.sax.InputSource;
  * on "class" attributes for identification.
  * ====
  */
-public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConversionService {
+public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConversionService, InitializingBean {
 
 	// ==== CU Customization: Added logger. ====
 	private static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(MaintainableXMLConversionServiceImpl.class);
@@ -85,6 +86,14 @@ public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConv
 		this.setConversionRuleFile(conversionRuleFile);
 	}
 
+	// ==== CU Customization: Initialize the rule maps at bean setup rather than at each conversion attempt. ====
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		if (StringUtils.isNotBlank(this.getConversionRuleFile())) {
+			this.setRuleMaps();
+		}
+	}
+
 	@Override
 	public String transformMaintainableXML(String xml) {
 		// ==== CU Customization: Fixed a bug with the population of the maintenanceAction variable. ====
@@ -93,8 +102,8 @@ public class MaintainableXMLConversionServiceImpl implements MaintainableXMLConv
 		if(StringUtils.isNotBlank(this.getConversionRuleFile())) {
 			try {
 				// ==== CU Customization: Updated this section to use a new conversion process involving StAX. ====
-				this.setRuleMaps();
-				/*DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				/*this.setRuleMaps();
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document document = db.parse(new InputSource(new StringReader(xml)));
 				for(Node childNode = document.getFirstChild(); childNode != null;) {
